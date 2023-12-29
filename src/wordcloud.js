@@ -40,10 +40,6 @@ export class Wordcloud {
       random: Math.random,
     };
 
-    this.initialize();
-  }
-
-  initialize() {
     // Set/Get dimensions
     if (this.options.width) {
       this.element.style.width = this.options.width + 'px';
@@ -271,7 +267,7 @@ export class Wordcloud {
       weight =
         Math.round(
           ((word.weight - this.data.min_weight) * 1.0 * (this.options.steps - 1)) /
-            (this.data.max_weight - this.data.min_weight),
+          (this.data.max_weight - this.data.min_weight),
         ) + 1;
     }
     wordSpan = document.createElement('span');
@@ -353,8 +349,8 @@ export class Wordcloud {
         if (
           stepsInDirection * this.data.step >
           (1 + Math.floor(quarterTurns / 2.0)) *
-            this.data.step *
-            ((quarterTurns % 4) % 2 === 0 ? 1 : this.data.aspect_ratio)
+          this.data.step *
+          ((quarterTurns % 4) % 2 === 0 ? 1 : this.data.aspect_ratio)
         ) {
           stepsInDirection = 0.0;
           quarterTurns++;
