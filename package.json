@@ -38,21 +38,22 @@
     "url": "https://github.com:Zegnat/wordcloud/issues"
   },
   "devDependencies": {
+    "@rollup/plugin-terser": "^0.4.4",
+    "@rollup/plugin-typescript": "^11.1.5",
     "@typescript-eslint/eslint-plugin": "^6.16.0",
+    "@typescript-eslint/parser": "^6.16.0",
     "eslint": "^8.56.0",
     "eslint-config-prettier": "^9.1.0",
-    "eslint-config-standard-with-typescript": "^43.0.0",
-    "eslint-plugin-import": "^2.29.1",
-    "eslint-plugin-n": "^16.6.0",
     "eslint-plugin-prettier": "^5.1.2",
-    "eslint-plugin-promise": "^6.1.1",
-    "prettier": "3.1.1",
-    "prettier-eslint": "^16.2.0",
-    "typescript": "^5.3.3"
+    "prettier": "^3.1.1",
+    "rollup-plugin-copy": "^3.5.0",
+    "rollup-plugin-postcss": "^4.0.2"
   },
   "scripts": {
-    "eslint": "eslint --fix src/",
-    "prettier": "prettier --write src/",
-    "build": "tsc"
+    "build": "rollup -c",
+    "build:watch": "rollup -c -w",
+    "lint": "eslint 'src/**/*.ts' --fix",
+    "format": "prettier --write 'src/**/*' 'demo/**/*'",
+    "check-format": "prettier --check 'src/**/*' 'demo/**/*''"
   }
 }

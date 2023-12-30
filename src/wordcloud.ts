@@ -39,7 +39,7 @@ interface WordCloudOptions {
   random: () => number;
 }
 
-export class Wordcloud {
+export default class Wordcloud {
   private readonly element: HTMLElement;
   private word_array: Word[];
   private readonly DEFAULTS = {
@@ -60,11 +60,10 @@ export class Wordcloud {
   private readonly sizeGenerator: ((weight: number, width: number, height: number) => string) | undefined;
   private readonly data: {
     placed_words: Rectangle[];
-    timeouts: Record<number, boolean>;
+    timeouts: Array<ReturnType<typeof setTimeout>>;
     // Namespace word ids to avoid collisions between multiple clouds
     namespace: string;
     step: number;
-    angle: number;
     aspect_ratio: number;
     max_weight: number | null;
     min_weight: number | null;
@@ -72,7 +71,7 @@ export class Wordcloud {
     colors: string[];
   };
 
-  constructor(element: HTMLElement, wordArray: Word[], options: Partial<WordCloudOptions>) {
+  constructor(element: HTMLElement, wordArray: Word[], options?: Partial<WordCloudOptions>) {
     this.element = element;
 
     this.word_array = wordArray;
@@ -83,20 +82,22 @@ export class Wordcloud {
     };
 
     // Set/Get dimensions
-    const styleWidth = this.element.computedStyleMap().get('width');
-    if (this.options.width !== null) {
+    const style = window.getComputedStyle(this.element);
+    console.log(style.width, style.height);
+    if (options?.width) {
+      console.log('here1');
       this.element.style.width = this.options.width + 'px';
-    } else if (styleWidth !== undefined) {
-      this.options.width = parseFloat(styleWidth.toString());
+    } else if (style?.width) {
+      console.log('here2');
+      this.options.width = parseFloat(style.width.toString());
     } else {
       this.options.width = this.DEFAULTS.width;
     }
 
-    const styleHeight = this.element.computedStyleMap().get('height');
-    if (this.options.height !== null) {
+    if (options?.height) {
       this.element.style.height = this.options.height + 'px';
-    } else if (styleHeight !== undefined) {
-      this.options.height = parseFloat(styleHeight.toString());
+    } else if (style.height !== undefined) {
+      this.options.height = parseFloat(style.height.toString());
     } else {
       this.options.height = this.DEFAULTS.height;
     }
@@ -160,11 +161,10 @@ export class Wordcloud {
 
     this.data = {
       placed_words: [],
-      timeouts: {},
+      timeouts: [],
       // Namespace word ids to avoid collisions between multiple clouds
       namespace: (this.element.id ?? Math.floor(Math.random() * 1000000).toString(36)) + '_word_',
       step: this.options.shape === 'rectangular' ? 18.0 : 2.0,
-      angle: this.options.random() * 6.28,
       aspect_ratio: this.options.width / this.options.height,
       max_weight: null,
       min_weight: null,
@@ -193,10 +193,10 @@ export class Wordcloud {
   // Helper function to keep track of timeouts so they can be destroyed
   createTimeout(callback: () => void, time: number): void {
     const timeout = setTimeout(() => {
-      this.data.timeouts[timeout] = false;
+      this.data.timeouts = this.data.timeouts.filter((t) => t !== timeout);
       callback();
     }, time);
-    this.data.timeouts[timeout] = true;
+    this.data.timeouts.push(timeout);
   }
 
   // Destroy all timeouts
@@ -204,7 +204,7 @@ export class Wordcloud {
     for (const timeout in this.data.timeouts) {
       clearTimeout(parseInt(timeout));
     }
-    this.data.timeouts = {};
+    this.data.timeouts = [];
   }
 
   // Pairwise overlap detection
@@ -286,7 +286,7 @@ export class Wordcloud {
 
     // option.shape == 'elliptic'
 
-    let angle = this.data.angle;
+    let angle = this.options.random() * 6.28;
 
     let radius = 0.0;
 
@@ -510,11 +510,15 @@ export class Wordcloud {
   }
 }
 
-const throttle = <T>(callback: (...args: any[]) => void, delay: number, context?: T): ((...args: any[]) => void) => {
+const throttle = <T>(
+  callback: (...args: unknown[]) => void,
+  delay: number,
+  context?: T,
+): ((...args: unknown[]) => void) => {
   let pid: ReturnType<typeof setTimeout> | null = null;
   let last = 0;
 
-  return (...args: any[]) => {
+  return (...args: unknown[]) => {
     const elapsed = Date.now() - last;
 
     const exec = (): void => {
