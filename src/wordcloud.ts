@@ -1,5 +1,6 @@
-import { type Rectangle, checkOverlappingAny } from './rectangle';
+import { type Rectangle, checkOverlappingAny, checkOverlapping } from './rectangle';
 import throttle from 'lodash-es/throttle';
+import prand from 'pure-rand';
 
 interface Word {
   text: string;
@@ -35,6 +36,9 @@ interface WordCloudOptions {
   random: () => number;
 }
 
+const randomGenerator = prand.xoroshiro128plus(1);
+const seededRandom = () => randomGenerator.unsafeNext();
+
 export default class Wordcloud {
   private readonly element: HTMLElement;
   private word_array: Word[];
@@ -48,7 +52,7 @@ export default class Wordcloud {
     encodeURI: true,
     removeOverflowing: true,
     autoResize: false,
-    random: Math.random,
+    random: seededRandom,
   } satisfies WordCloudOptions;
 
   private readonly options: WordCloudOptions;
@@ -66,6 +70,7 @@ export default class Wordcloud {
     sizes: string[];
     colors: string[];
   };
+  private readonly windowResizeHandler = throttle(this.resize.bind(this), 100);
 
   constructor(element: HTMLElement, wordArray: Word[], options?: Partial<WordCloudOptions>) {
     this.element = element;
@@ -180,7 +185,7 @@ export default class Wordcloud {
 
     // Attach window resize event
     if (this.options.autoResize) {
-      window.addEventListener('resize', throttle(this.resize.bind(this), 50));
+      window.addEventListener('resize', this.windowResizeHandler);
     }
   }
 
@@ -346,15 +351,11 @@ export default class Wordcloud {
     const wordSize = {
       width: wordSpan.offsetWidth,
       height: wordSpan.offsetHeight,
-      left: this.options.center.x * this.options.width - wordSpan.offsetWidth / 2,
-      top: this.options.center.y * this.options.height - wordSpan.offsetHeight / 2,
+      left: -(wordSpan.offsetWidth / 2),
+      top: -(wordSpan.offsetHeight / 2),
     };
 
     // Save a reference to the style property, for better performance
-    const wordStyle = wordSpan.style;
-    wordStyle.position = 'absolute';
-    wordStyle.left = wordSize.left + 'px';
-    wordStyle.top = wordSize.top + 'px';
 
     while (checkOverlappingAny(wordSize, this.data.placed_words)) {
       // option shape is 'rectangular' so move the word in a rectangular spiral
@@ -390,23 +391,33 @@ export default class Wordcloud {
         radius += this.data.step;
         angle += (index % 2 === 0 ? 1 : -1) * this.data.step;
 
-        wordSize.left =
-          this.options.center.x * this.options.width -
-          wordSize.width / 2.0 +
-          radius * Math.cos(angle) * this.data.aspect_ratio;
-        wordSize.top = this.options.center.y * this.options.height + radius * Math.sin(angle) - wordSize.height / 2.0;
+        radius * Math.cos(angle) * this.data.aspect_ratio;
+        wordSize.left = -(wordSize.width / 2.0) + radius * Math.cos(angle) * this.data.aspect_ratio;
+        wordSize.top = -(wordSize.height / 2.0) + radius * Math.sin(angle);
       }
-      wordStyle.left = wordSize.left + 'px';
-      wordStyle.top = wordSize.top + 'px';
     }
 
-    // Don't render word if part of it would be outside the container
+    const wordStyle = wordSpan.style;
+    wordStyle.position = 'absolute';
+    wordStyle.left = this.options.center.x * this.options.width + wordSize.left + 'px';
+    wordStyle.top = this.options.center.y * this.options.height + wordSize.top + 'px';
+    wordSpan.dataset.left = wordSize.left.toString();
+    wordSpan.dataset.top = wordSize.top.toString();
+    wordSpan.dataset.overlappingContainer = checkOverlapping(wordSize, {
+      left: -this.options.width / 2,
+      top: -this.options.height / 2,
+      width: this.options.width,
+      height: this.options.height,
+    }).toString();
+
     if (
       this.options.removeOverflowing &&
-      (wordSize.left < 0 ||
-        wordSize.top < 0 ||
-        wordSize.left + wordSize.width > this.options.width ||
-        wordSize.top + wordSize.height > this.options.height)
+      !checkOverlapping(wordSize, {
+        left: -this.options.width / 2,
+        top: -this.options.height / 2,
+        width: this.options.width,
+        height: this.options.height,
+      })
     ) {
       wordSpan.remove();
       return;
@@ -430,25 +441,12 @@ export default class Wordcloud {
 
       return;
     }
-
-    if (index < this.word_array.length) {
-      this.drawOneWord(index, this.word_array[index]);
-
-      this.createTimeout(() => {
-        this.drawOneWordDelayed(index + 1);
-      }, this.options.delay ?? 0);
-    } else {
-      if (typeof this.options.afterCloudRender === 'function') {
-        this.options.afterCloudRender.call(this.element);
-      }
-    }
   }
 
   // Destroy any data and objects added by the plugin
   destroy(): void {
     if (this.options.autoResize) {
-      // @TODO: get access to resize function to unset its handler:
-      // $(window).off('resize.' + this.data.namespace)
+      window.removeEventListener('resize', this.windowResizeHandler);
     }
 
     this.clearTimeouts();

@@ -105,4 +105,10 @@ describe('checkOverlapping', () => {
     const b = { left: -1, top: -1, width: 10, height: 20 };
     expect(checkOverlapping(a, b)).toBe(true);
   });
+
+  it('a rectangle inside another overlaps', () => {
+    const a = { left: 0, top: 0, width: 10, height: 20 };
+    const b = { left: 1, top: 1, width: 8, height: 18 };
+    expect(checkOverlapping(a, b)).toBe(true);
+  });
 });
