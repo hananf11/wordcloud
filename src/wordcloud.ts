@@ -1,4 +1,5 @@
 import { type Rectangle, checkOverlappingAny } from './rectangle';
+import throttle from 'lodash-es/throttle';
 
 interface Word {
   text: string;
@@ -179,7 +180,7 @@ export default class Wordcloud {
 
     // Attach window resize event
     if (this.options.autoResize) {
-      window.addEventListener('resize', throttle(this.resize.bind(this), 50, this));
+      window.addEventListener('resize', throttle(this.resize.bind(this), 50));
     }
   }
 
@@ -481,28 +482,3 @@ export default class Wordcloud {
     }
   }
 }
-
-const throttle = <T>(
-  callback: (...args: unknown[]) => void,
-  delay: number,
-  context?: T,
-): ((...args: unknown[]) => void) => {
-  let pid: ReturnType<typeof setTimeout> | null = null;
-  let last = 0;
-
-  return (...args: unknown[]) => {
-    const elapsed = Date.now() - last;
-
-    const exec = (): void => {
-      last = Date.now();
-      callback.apply(context ?? this, args);
-    };
-
-    if (elapsed > delay) {
-      exec();
-    } else {
-      if (pid != null) clearTimeout(pid);
-      pid = setTimeout(exec, delay - elapsed);
-    }
-  };
-};

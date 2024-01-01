@@ -1,6 +1,7 @@
 import typescript from '@rollup/plugin-typescript';
 import terser from '@rollup/plugin-terser';
 import copy from 'rollup-plugin-copy';
+import nodeResolve from '@rollup/plugin-node-resolve';
 
 export default {
   input: 'src/wordcloud.ts',
@@ -35,9 +36,10 @@ export default {
     },
   ],
   plugins: [
-    typescript({
-      sourceMap: true,
+    nodeResolve({
+      extensions: ['.ts', '.js'],
     }),
+    typescript(),
     copy({
       targets: [{ src: 'src/wordcloud.css', dest: 'dist' }],
     }),
