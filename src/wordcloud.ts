@@ -37,7 +37,7 @@ interface WordCloudOptions {
 }
 
 const randomGenerator = prand.xoroshiro128plus(1);
-const seededRandom = () => randomGenerator.unsafeNext();
+const seededRandom = () => (randomGenerator.unsafeNext() >>> 0) / 0x1_0000_0000;
 
 export default class Wordcloud {
   private readonly element: HTMLElement;
