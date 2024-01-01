@@ -1,3 +1,5 @@
+import { type Rectangle, checkOverlappingAny } from './rectangle';
+
 interface Word {
   text: string;
   weight: number;
@@ -6,13 +8,6 @@ interface Word {
   link?: string | { href: string };
   handlers?: Record<string, () => void>;
   afterWordRender?: () => void;
-}
-
-interface Rectangle {
-  width: number;
-  height: number;
-  left: number;
-  top: number;
 }
 
 interface WordCloudOptions {
@@ -85,10 +80,8 @@ export default class Wordcloud {
     const style = window.getComputedStyle(this.element);
     console.log(style.width, style.height);
     if (options?.width) {
-      console.log('here1');
       this.element.style.width = this.options.width + 'px';
     } else if (style?.width) {
-      console.log('here2');
       this.options.width = parseFloat(style.width.toString());
     } else {
       this.options.width = this.DEFAULTS.width;
@@ -205,27 +198,6 @@ export default class Wordcloud {
       clearTimeout(parseInt(timeout));
     }
     this.data.timeouts = [];
-  }
-
-  // Pairwise overlap detection
-  overlapping(a: Rectangle, b: Rectangle): boolean {
-    if (Math.abs(2.0 * a.left + a.width - 2.0 * b.left - b.width) < a.width + b.width) {
-      if (Math.abs(2.0 * a.top + a.height - 2.0 * b.top - b.height) < a.height + b.height) {
-        return true;
-      }
-    }
-    return false;
-  }
-
-  // Helper function to test if an element overlaps others
-  hitTest(elem: Rectangle): boolean {
-    // Check elements for overlap one by one, stop and return false as soon as an overlap is found
-    for (let i = 0, l = this.data.placed_words.length; i < l; i++) {
-      if (this.overlapping(elem, this.data.placed_words[i])) {
-        return true;
-      }
-    }
-    return false;
   }
 
   // Initialize the drawing of the whole cloud
@@ -383,7 +355,7 @@ export default class Wordcloud {
     wordStyle.left = wordSize.left + 'px';
     wordStyle.top = wordSize.top + 'px';
 
-    while (this.hitTest(wordSize)) {
+    while (checkOverlappingAny(wordSize, this.data.placed_words)) {
       // option shape is 'rectangular' so move the word in a rectangular spiral
       if (this.options.shape === 'rectangular') {
         stepsInDirection++;
