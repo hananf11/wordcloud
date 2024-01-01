@@ -244,17 +244,12 @@ export default class Wordcloud {
       }
     }
 
-    // Iterate drawOneWord on every word, immediately or with delay
-    if (this.options.delay !== undefined && this.options.delay > 0) {
-      this.drawOneWordDelayed();
-    } else {
-      for (i = 0, l = this.word_array.length; i < l; i++) {
-        this.drawOneWord(i, this.word_array[i]);
-      }
+    for (i = 0, l = this.word_array.length; i < l; i++) {
+      this.drawOneWord(i, this.word_array[i]);
+    }
 
-      if (typeof this.options.afterCloudRender === 'function') {
-        this.options.afterCloudRender.call(this.element);
-      }
+    if (typeof this.options.afterCloudRender === 'function') {
+      this.options.afterCloudRender.call(this.element);
     }
   }
 
@@ -428,18 +423,6 @@ export default class Wordcloud {
 
     if (typeof word.afterWordRender === 'function') {
       word.afterWordRender.call(wordSpan);
-    }
-  }
-
-  // Draw one word then recall the function after a delay
-  drawOneWordDelayed(index: number = 0): void {
-    // if not visible then do not attempt to draw
-    if ((this.element.offsetWidth ?? this.element.offsetHeight ?? this.element.getClientRects().length) === 0) {
-      this.createTimeout(() => {
-        this.drawOneWordDelayed(index);
-      }, 10);
-
-      return;
     }
   }
 
