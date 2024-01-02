@@ -72,7 +72,7 @@ export default class Wordcloud {
   };
   private readonly windowResizeHandler = throttle(this.resize.bind(this), 100);
 
-  constructor(element: HTMLElement, wordArray: Word[], options?: Partial<WordCloudOptions>) {
+  constructor(element: HTMLElement, wordArray: Word[], options: Partial<WordCloudOptions>) {
     this.element = element;
 
     this.word_array = wordArray;
@@ -104,12 +104,6 @@ export default class Wordcloud {
     // Ensure delay
     if (this.options.delay === undefined) {
       this.options.delay = this.word_array.length > 50 ? 10 : 0;
-    }
-
-    // Backward compatibility
-    if (this.options.center.x > 1) {
-      this.options.center.x = this.options.center.x / this.options.width;
-      this.options.center.y = this.options.center.y / this.options.height;
     }
 
     // Create colorGenerator function from options
@@ -253,21 +247,78 @@ export default class Wordcloud {
     }
   }
 
+  findRectanglePosition(startSize: Rectangle): Rectangle {
+    let stepsInDirection = 0.0;
+    let quarterTurns = 0.0;
+    const size = { ...startSize, x: -startSize.width / 2, y: -startSize.height / 2 };
+
+    while (checkOverlappingAny(size, this.data.placed_words)) {
+      stepsInDirection++;
+
+      const stepsInDirectionDistance = this.data.step * stepsInDirection;
+
+      const movingVertically = (quarterTurns % 4) % 2 === 0;
+      const maxAllowedStepsInDirection =
+        (1 + Math.floor(quarterTurns / 2.0)) * (movingVertically ? 1 : this.data.aspect_ratio);
+      const maxAllowedStepsInDirectionDistance = maxAllowedStepsInDirection * this.data.step;
+
+      if (stepsInDirectionDistance > maxAllowedStepsInDirectionDistance) {
+        stepsInDirection = 0.0;
+        quarterTurns++;
+      }
+
+      switch (quarterTurns % 4) {
+        case 1:
+          // move right
+          size.x += this.data.step * this.data.aspect_ratio + this.options.random() * 2.0;
+          break;
+        case 2:
+          // move up
+          size.y -= this.data.step + this.options.random() * 2.0;
+          break;
+        case 3:
+          // move left
+          size.x -= this.data.step * this.data.aspect_ratio + this.options.random() * 2.0;
+          break;
+        case 0:
+          // move down
+          size.y += this.data.step + this.options.random() * 2.0;
+          break;
+      }
+    }
+
+    return size;
+  }
+
+  findEllipticPosition(startSize: Rectangle): Rectangle {
+    let angle = this.options.random() * 6.28;
+    let radius = 0.0;
+
+    const size = { ...startSize, x: -startSize.width / 2, y: -startSize.height / 2 };
+
+    while (checkOverlappingAny(size, this.data.placed_words)) {
+      radius += this.data.step;
+      angle += this.data.step;
+
+      size.x = -(size.width / 2.0) + radius * Math.cos(angle) * this.data.aspect_ratio;
+      size.y = -(size.height / 2.0) + radius * Math.sin(angle);
+    }
+
+    return size;
+  }
+
+  findOneWordPosition(size: Rectangle): Rectangle {
+    switch (this.options.shape) {
+      case 'rectangular':
+        return this.findRectanglePosition(size);
+      case 'elliptic':
+        return this.findEllipticPosition(size);
+    }
+  }
+
   // Function to draw a word, by moving it in spiral until it finds a suitable empty place
   drawOneWord(index: number, word: Word): void {
     const wordId = this.data.namespace + index;
-
-    // option.shape == 'elliptic'
-
-    let angle = this.options.random() * 6.28;
-
-    let radius = 0.0;
-
-    // option.shape == 'rectangular'
-
-    let stepsInDirection = 0.0;
-
-    let quarterTurns = 0.0;
 
     let weight = Math.floor(this.options.steps / 2);
 
@@ -343,59 +394,12 @@ export default class Wordcloud {
 
     this.element.appendChild(wordSpan);
 
-    const wordSize = {
+    const wordSize = this.findOneWordPosition({
       width: wordSpan.offsetWidth,
       height: wordSpan.offsetHeight,
       x: -(wordSpan.offsetWidth / 2),
       y: -(wordSpan.offsetHeight / 2),
-    };
-
-    // Save a reference to the style property, for better performance
-
-    while (checkOverlappingAny(wordSize, this.data.placed_words)) {
-      // option shape is 'rectangular' so move the word in a rectangular spiral
-      if (this.options.shape === 'rectangular') {
-        stepsInDirection++;
-
-        const stepsInDirectionDistance = this.data.step * stepsInDirection;
-
-        const movingVertically = (quarterTurns % 4) % 2 === 0;
-        const maxAllowedStepsInDirection =
-          (1 + Math.floor(quarterTurns / 2.0)) * (movingVertically ? 1 : this.data.aspect_ratio);
-        const maxAllowedStepsInDirectionDistance = maxAllowedStepsInDirection * this.data.step;
-
-        if (stepsInDirectionDistance > maxAllowedStepsInDirectionDistance) {
-          stepsInDirection = 0.0;
-          quarterTurns++;
-        }
-
-        switch (quarterTurns % 4) {
-          case 1:
-            // move right
-            wordSize.x += this.data.step * this.data.aspect_ratio + this.options.random() * 2.0;
-            break;
-          case 2:
-            // move up
-            wordSize.y -= this.data.step + this.options.random() * 2.0;
-            break;
-          case 3:
-            // move left
-            wordSize.x -= this.data.step * this.data.aspect_ratio + this.options.random() * 2.0;
-            break;
-          case 0:
-            // move down
-            wordSize.y += this.data.step + this.options.random() * 2.0;
-            break;
-        }
-      } else {
-        // Default settings: elliptic spiral shape
-        radius += this.data.step;
-        angle += (index % 2 === 0 ? 1 : -1) * this.data.step;
-
-        wordSize.x = -(wordSize.width / 2.0) + radius * Math.cos(angle) * this.data.aspect_ratio;
-        wordSize.y = -(wordSize.height / 2.0) + radius * Math.sin(angle);
-      }
-    }
+    });
 
     const wordStyle = wordSpan.style;
     wordStyle.position = 'absolute';
