@@ -357,27 +357,33 @@ export default class Wordcloud {
       if (this.options.shape === 'rectangular') {
         stepsInDirection++;
 
-        if (
-          stepsInDirection * this.data.step >
-          (1 + Math.floor(quarterTurns / 2.0)) *
-            this.data.step *
-            ((quarterTurns % 4) % 2 === 0 ? 1 : this.data.aspect_ratio)
-        ) {
+        const stepsInDirectionDistance = this.data.step * stepsInDirection;
+
+        const movingVertically = (quarterTurns % 4) % 2 === 0;
+        const maxAllowedStepsInDirection =
+          (1 + Math.floor(quarterTurns / 2.0)) * (movingVertically ? 1 : this.data.aspect_ratio);
+        const maxAllowedStepsInDirectionDistance = maxAllowedStepsInDirection * this.data.step;
+
+        if (stepsInDirectionDistance > maxAllowedStepsInDirectionDistance) {
           stepsInDirection = 0.0;
           quarterTurns++;
         }
 
         switch (quarterTurns % 4) {
           case 1:
+            // move right
             wordSize.left += this.data.step * this.data.aspect_ratio + this.options.random() * 2.0;
             break;
           case 2:
+            // move up
             wordSize.top -= this.data.step + this.options.random() * 2.0;
             break;
           case 3:
+            // move left
             wordSize.left -= this.data.step * this.data.aspect_ratio + this.options.random() * 2.0;
             break;
           case 0:
+            // move down
             wordSize.top += this.data.step + this.options.random() * 2.0;
             break;
         }
@@ -386,7 +392,6 @@ export default class Wordcloud {
         radius += this.data.step;
         angle += (index % 2 === 0 ? 1 : -1) * this.data.step;
 
-        radius * Math.cos(angle) * this.data.aspect_ratio;
         wordSize.left = -(wordSize.width / 2.0) + radius * Math.cos(angle) * this.data.aspect_ratio;
         wordSize.top = -(wordSize.height / 2.0) + radius * Math.sin(angle);
       }
