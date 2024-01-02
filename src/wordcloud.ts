@@ -346,8 +346,8 @@ export default class Wordcloud {
     const wordSize = {
       width: wordSpan.offsetWidth,
       height: wordSpan.offsetHeight,
-      left: -(wordSpan.offsetWidth / 2),
-      top: -(wordSpan.offsetHeight / 2),
+      x: -(wordSpan.offsetWidth / 2),
+      y: -(wordSpan.offsetHeight / 2),
     };
 
     // Save a reference to the style property, for better performance
@@ -372,19 +372,19 @@ export default class Wordcloud {
         switch (quarterTurns % 4) {
           case 1:
             // move right
-            wordSize.left += this.data.step * this.data.aspect_ratio + this.options.random() * 2.0;
+            wordSize.x += this.data.step * this.data.aspect_ratio + this.options.random() * 2.0;
             break;
           case 2:
             // move up
-            wordSize.top -= this.data.step + this.options.random() * 2.0;
+            wordSize.y -= this.data.step + this.options.random() * 2.0;
             break;
           case 3:
             // move left
-            wordSize.left -= this.data.step * this.data.aspect_ratio + this.options.random() * 2.0;
+            wordSize.x -= this.data.step * this.data.aspect_ratio + this.options.random() * 2.0;
             break;
           case 0:
             // move down
-            wordSize.top += this.data.step + this.options.random() * 2.0;
+            wordSize.y += this.data.step + this.options.random() * 2.0;
             break;
         }
       } else {
@@ -392,20 +392,20 @@ export default class Wordcloud {
         radius += this.data.step;
         angle += (index % 2 === 0 ? 1 : -1) * this.data.step;
 
-        wordSize.left = -(wordSize.width / 2.0) + radius * Math.cos(angle) * this.data.aspect_ratio;
-        wordSize.top = -(wordSize.height / 2.0) + radius * Math.sin(angle);
+        wordSize.x = -(wordSize.width / 2.0) + radius * Math.cos(angle) * this.data.aspect_ratio;
+        wordSize.y = -(wordSize.height / 2.0) + radius * Math.sin(angle);
       }
     }
 
     const wordStyle = wordSpan.style;
     wordStyle.position = 'absolute';
-    wordStyle.left = this.options.center.x * this.options.width + wordSize.left + 'px';
-    wordStyle.top = this.options.center.y * this.options.height + wordSize.top + 'px';
-    wordSpan.dataset.left = wordSize.left.toString();
-    wordSpan.dataset.top = wordSize.top.toString();
+    wordStyle.left = this.options.center.x * this.options.width + wordSize.x + 'px';
+    wordStyle.top = this.options.center.y * this.options.height + wordSize.y + 'px';
+    wordSpan.dataset.left = wordSize.x.toString();
+    wordSpan.dataset.top = wordSize.y.toString();
     wordSpan.dataset.overlappingContainer = checkOverlapping(wordSize, {
-      left: -this.options.width / 2,
-      top: -this.options.height / 2,
+      x: -this.options.width / 2,
+      y: -this.options.height / 2,
       width: this.options.width,
       height: this.options.height,
     }).toString();
@@ -413,8 +413,8 @@ export default class Wordcloud {
     if (
       this.options.removeOverflowing &&
       !checkOverlapping(wordSize, {
-        left: -this.options.width / 2,
-        top: -this.options.height / 2,
+        x: -this.options.width / 2,
+        y: -this.options.height / 2,
         width: this.options.width,
         height: this.options.height,
       })
